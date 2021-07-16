@@ -386,6 +386,9 @@ pub struct Module {
     /// The set of defined functions within this module which are located in
     /// element segments.
     pub possibly_exported_funcs: HashSet<DefinedFuncIndex>,
+
+    /// The ct-wasm secrecy annotations, if present
+    pub ct_wasm_annot: Option<Box<Vec<u8>>>,
 }
 
 /// Initialization routines for creating an instance, encompassing imports,

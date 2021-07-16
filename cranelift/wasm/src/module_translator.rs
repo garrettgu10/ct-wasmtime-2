@@ -9,6 +9,7 @@ use crate::sections_translator::{
 };
 use crate::state::ModuleTranslationState;
 use cranelift_codegen::timing;
+use std::io::Read;
 use std::prelude::v1::*;
 use wasmparser::{NameSectionReader, Parser, Payload, Validator};
 
@@ -139,6 +140,14 @@ pub fn translate_module<'data>(
                 if let Err(e) = result {
                     log::warn!("failed to parse name section {:?}", e);
                 }
+            }
+
+            Payload::CustomSection {
+                name: "ct-annot",
+                data,
+                ..
+            } => {
+                environ.declare_ct_annot(data);
             }
 
             Payload::CustomSection { name, data, .. } => environ.custom_section(name, data)?,

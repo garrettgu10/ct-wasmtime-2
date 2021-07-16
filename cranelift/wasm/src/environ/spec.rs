@@ -1019,6 +1019,9 @@ pub trait ModuleEnvironment<'data>: TargetEnvironment {
         Ok(())
     }
 
+    /// Declares a ct-annot information containing secrecy info in JSON format
+    fn declare_ct_annot(&mut self, _data: &'data [u8]) {}
+
     /// Returns the list of enabled wasm features this translation will be using.
     fn wasm_features(&self) -> WasmFeatures {
         WasmFeatures::default()

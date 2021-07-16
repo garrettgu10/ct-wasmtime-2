@@ -694,6 +694,10 @@ impl<'data> cranelift_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data
         self.declare_export(EntityIndex::Instance(index), name)
     }
 
+    fn declare_ct_annot(&mut self, data: &'data [u8]) {
+        self.result.module.ct_wasm_annot = Some(Box::new(data.to_vec()));
+    }
+
     fn declare_start_func(&mut self, func_index: FuncIndex) -> WasmResult<()> {
         self.flag_func_possibly_exported(func_index);
         debug_assert!(self.result.module.start_func.is_none());

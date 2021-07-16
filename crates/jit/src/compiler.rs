@@ -6,6 +6,7 @@ use object::write::Object;
 #[cfg(feature = "parallel-compilation")]
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use wasmparser::WasmFeatures;
@@ -152,7 +153,7 @@ impl Compiler {
             .into_iter()
             .collect::<CompiledFunctions>();
 
-        let dwarf_sections = if self.tunables.generate_native_debuginfo && !funcs.is_empty() {
+        let mut dwarf_sections = if self.tunables.generate_native_debuginfo && !funcs.is_empty() {
             transform_dwarf_data(
                 &*self.isa,
                 &translation.module,
@@ -162,6 +163,25 @@ impl Compiler {
         } else {
             vec![]
         };
+        
+        match &translation.module.ct_wasm_annot {
+            None => {}
+            Some(bytes) => {
+                let mut obj: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+                let offsets = VMOffsets::new(self.isa.frontend_config().pointer_bytes(), &translation.module);
+                obj["memoriesOffset"] = serde_json::to_value(offsets.vmctx_imported_memories_begin()).unwrap();
+                obj["globalsOffset"] = serde_json::to_value(offsets.vmctx_globals_begin()).unwrap();
+                let relocs = vec![];
+                let mut res = obj.to_string();
+                res.push_str("                    "); //add some extra padding to the json section so we can mess with it for testing later
+                
+                let body = res.into_bytes();
+
+                dwarf_sections.push(DwarfSection {
+                    name: ".vmcontext_offsets", body, relocs
+                });
+            }
+        }
 
         let (obj, unwind_info) =
             build_object(&*self.isa, &translation, types, &funcs, dwarf_sections)?;

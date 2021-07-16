@@ -3769,6 +3769,7 @@ dependencies = [
  "rayon",
  "region",
  "serde",
+ "serde_json",
  "target-lexicon",
  "thiserror",
  "wasmparser 0.79.0",
