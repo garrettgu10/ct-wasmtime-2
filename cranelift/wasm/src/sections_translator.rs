@@ -24,7 +24,7 @@ use std::boxed::Box;
 use std::vec::Vec;
 use wasmparser::{
     self, Data, DataKind, DataSectionReader, Element, ElementItem, ElementItems, ElementKind,
-    ElementSectionReader, EventSectionReader, EventType, Export, ExportSectionReader, ExternalKind,
+    ElementSectionReader, TagSectionReader, TagType, Export, ExportSectionReader, ExternalKind,
     FunctionSectionReader, GlobalSectionReader, GlobalType, ImportSectionEntryType,
     ImportSectionReader, MemorySectionReader, MemoryType, NameSectionReader, Naming, Operator,
     TableSectionReader, TableType, TypeDef, TypeSectionReader,
@@ -45,7 +45,7 @@ fn entity_type(
             EntityType::Instance(environ.type_to_instance_type(TypeIndex::from_u32(sig))?)
         }
         ImportSectionEntryType::Memory(ty) => EntityType::Memory(memory(ty)),
-        ImportSectionEntryType::Event(evt) => EntityType::Event(event(evt)),
+        ImportSectionEntryType::Tag(evt) => EntityType::Event(event(evt)),
         ImportSectionEntryType::Global(ty) => {
             EntityType::Global(global(ty, environ, GlobalInit::Import)?)
         }
@@ -65,7 +65,7 @@ fn memory(ty: MemoryType) -> Memory {
     }
 }
 
-fn event(e: EventType) -> Event {
+fn event(e: TagType) -> Event {
     Event {
         ty: TypeIndex::from_u32(e.type_index),
     }
@@ -174,7 +174,7 @@ pub fn parse_import_section<'data>(
             ImportSectionEntryType::Memory(ty) => {
                 environ.declare_memory_import(memory(ty), import.module, import.field)?;
             }
-            ImportSectionEntryType::Event(e) => {
+            ImportSectionEntryType::Tag(e) => {
                 environ.declare_event_import(event(e), import.module, import.field)?;
             }
             ImportSectionEntryType::Global(ty) => {
@@ -245,7 +245,7 @@ pub fn parse_memory_section(
 
 /// Parses the Event section of the wasm module.
 pub fn parse_event_section(
-    events: EventSectionReader,
+    events: TagSectionReader,
     environ: &mut dyn ModuleEnvironment,
 ) -> WasmResult<()> {
     environ.reserve_events(events.get_count())?;
@@ -321,7 +321,7 @@ pub fn parse_export_section<'data>(
             ExternalKind::Memory => {
                 environ.declare_memory_export(MemoryIndex::new(index), field)?
             }
-            ExternalKind::Event => environ.declare_event_export(EventIndex::new(index), field)?,
+            ExternalKind::Tag => environ.declare_event_export(EventIndex::new(index), field)?,
             ExternalKind::Global => {
                 environ.declare_global_export(GlobalIndex::new(index), field)?
             }
@@ -473,20 +473,21 @@ pub fn parse_name_section<'data>(
                 environ.declare_module_name(name);
             }
             wasmparser::Name::Local(l) => {
-                let mut reader = l.get_function_local_reader()?;
-                for _ in 0..reader.get_count() {
+                let mut reader = l.get_indirect_map()?;
+                for _ in 0..reader.get_indirect_count() {
                     let f = reader.read()?;
-                    if f.func_index == u32::max_value() {
+                    if f.indirect_index == u32::max_value() {
                         continue;
                     }
                     let mut map = f.get_map()?;
                     for _ in 0..map.get_count() {
                         let Naming { index, name } = map.read()?;
-                        environ.declare_local_name(FuncIndex::from_u32(f.func_index), index, name)
+                        environ.declare_local_name(FuncIndex::from_u32(f.indirect_index), index, name)
                     }
                 }
             }
             wasmparser::Name::Unknown { .. } => {}
+            _ => {}
         }
     }
     Ok(())
@@ -516,7 +517,7 @@ pub fn parse_instance_section<'data>(
                     ExternalKind::Instance => {
                         EntityIndex::Instance(InstanceIndex::from_u32(arg.index))
                     }
-                    ExternalKind::Event => unimplemented!(),
+                    ExternalKind::Tag => unimplemented!(),
 
                     // this won't pass validation
                     ExternalKind::Type => unreachable!(),

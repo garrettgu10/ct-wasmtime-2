@@ -59,8 +59,8 @@ pub fn translate_module<'data>(
                 parse_memory_section(memories, environ)?;
             }
 
-            Payload::EventSection(events) => {
-                validator.event_section(&events)?;
+            Payload::TagSection(events) => {
+                validator.tag_section(&events)?;
                 parse_event_section(events, environ)?;
             }
 

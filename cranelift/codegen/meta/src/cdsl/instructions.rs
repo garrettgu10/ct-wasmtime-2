@@ -35,6 +35,13 @@ impl<'all_inst> InstructionGroupBuilder<'all_inst> {
         }
     }
 
+    pub fn push_with_ct(&mut self, builder: InstructionBuilder) {
+        let mut dit_variant = builder.clone();
+        self.push(builder);
+        dit_variant.name += "CT";
+        self.push(dit_variant);
+    }
+
     pub fn push(&mut self, builder: InstructionBuilder) {
         let opcode_number = OpcodeNumber(self.all_instructions.next_key().as_u32());
         let inst = builder.build(opcode_number);
@@ -197,6 +204,7 @@ impl fmt::Display for InstructionContent {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct InstructionBuilder {
     name: String,
     doc: String,
