@@ -1416,7 +1416,7 @@ impl<'a> BinaryReader<'a> {
     }
 
     fn read_0xfb_operator(&mut self) -> Result<Operator<'a>> {
-        let code = self.read_var_u32()?;
+        let code = self.read_u8()? as u8;
         Ok(match code {
             0x1a => Operator::DropCT,
             0x1b => Operator::SelectCT,

@@ -31,6 +31,8 @@ pub fn compile_to_obj(
         features.simd = true;
     }
 
+    features.multi_memory = true;
+
     match opt_level {
         wasmtime::OptLevel::None => {}
         wasmtime::OptLevel::Speed => {
